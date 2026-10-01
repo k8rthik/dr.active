@@ -31,3 +31,6 @@ packages = ["src/dractive"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+markers = [
+    "integration: end-to-end tests that train small models on the real-data fixture",
+]

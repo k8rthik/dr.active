@@ -122,7 +122,11 @@ class GNNConfig:
     val_fraction: float = 0.1
     patience: int = 8
     seed: int = 42
-    device: str = "auto"  # "auto" | "cpu" | "mps" | "cuda"
+    # "cpu" by default on purpose: these graphs average ~20 atoms, so per-kernel
+    # launch overhead dominates and an epoch measured 2.5 s on CPU vs 7.0 s on
+    # Apple MPS (M3 Pro, 5k molecules, batch 128). Use "auto"/"mps" for larger
+    # hidden dimensions. Options: "auto" | "cpu" | "mps" | "cuda".
+    device: str = "cpu"
 
 
 @dataclass(frozen=True)
