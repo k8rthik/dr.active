@@ -48,12 +48,11 @@ def read_raw() -> pd.DataFrame:
 def write_fixture(df: pd.DataFrame, n_rows: int) -> None:
     """A small, per-target-stratified real sample, safe to commit."""
     per_target = max(1, n_rows // max(1, df["target"].nunique()))
-    sample = (
-        df.groupby("target", group_keys=False)
-        .apply(lambda group: group.sample(
-            n=min(per_target, len(group)), random_state=0), include_groups=True)
-        .reset_index(drop=True)
-    )
+    pieces = [
+        group.sample(n=min(per_target, len(group)), random_state=0)
+        for _, group in df.groupby("target", sort=True)
+    ]
+    sample = pd.concat(pieces).sort_values(["target", "smiles"]).reset_index(drop=True)
     FIXTURE_PATH.parent.mkdir(parents=True, exist_ok=True)
     sample.to_csv(FIXTURE_PATH, index=False)
     print(f"wrote {len(sample)}-row fixture to {FIXTURE_PATH}")

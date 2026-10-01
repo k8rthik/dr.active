@@ -7,6 +7,7 @@ import sys
 from argparse import Namespace
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 from .config import (
@@ -18,6 +19,7 @@ from .config import (
 )
 from .dataset import load_dataset
 from .evaluate import (
+    BASELINE_NAME,
     GNN_NAME,
     RF_NAME,
     evaluate_predictions,
@@ -25,7 +27,14 @@ from .evaluate import (
     save_results,
 )
 from .gnn.train import load_gnn_model, train_gnn_model
+from .metrics import per_target_mean_predictions
 from .prepare import dataset_summary
+from .reporting import (
+    PredictionRecord,
+    per_target_metrics,
+    save_per_target,
+    save_predictions,
+)
 from .rf_model import load_rf_model, train_rf_model
 from .splits import SPLIT_NAMES, split_dataset
 from .targets import describe_targets, resolve_target_name
@@ -183,6 +192,7 @@ def cmd_evaluate(args: Namespace) -> None:
 
     df = load_dataset(Path(args.dataset))
     rows = []
+    records: list[PredictionRecord] = []
     for split_name in SPLIT_NAMES:
         train, test = split_dataset(
             df, split_name, test_fraction=splits.test_fraction, seed=splits.seed
@@ -191,10 +201,30 @@ def cmd_evaluate(args: Namespace) -> None:
         predictions = dict(
             _predictions_for(model_type, train, test, args) for model_type in requested
         )
-        rows.extend(evaluate_predictions(train, test, predictions, split_name=split_name))
+        predictions[BASELINE_NAME] = per_target_mean_predictions(train, test)
+        rows.extend(
+            evaluate_predictions(
+                train,
+                test,
+                {k: v for k, v in predictions.items() if k != BASELINE_NAME},
+                split_name=split_name,
+            )
+        )
+        records.extend(
+            PredictionRecord(
+                split=split_name,
+                model=model_name,
+                targets=test["target"].reset_index(drop=True),
+                y_true=test["pchembl"].to_numpy(dtype=float),
+                y_pred=np.asarray(values, dtype=float),
+            )
+            for model_name, values in predictions.items()
+        )
 
     frame = results_to_frame(rows)
     print(frame.to_string(index=False))
+    print("\nper target:")
+    print(per_target_metrics(records).to_string(index=False))
     paths = save_results(
         rows,
         Path(args.results_dir),
@@ -207,4 +237,11 @@ def cmd_evaluate(args: Namespace) -> None:
             "models": requested,
         },
     )
-    print(f"\nwrote {paths['json']} and {paths['markdown']}")
+    results_dir = Path(args.results_dir)
+    written = [
+        paths["json"],
+        paths["markdown"],
+        save_per_target(records, results_dir),
+        save_predictions(records, results_dir),
+    ]
+    print("\nwrote " + ", ".join(str(path) for path in written))

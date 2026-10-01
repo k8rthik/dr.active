@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import warnings
 from dataclasses import dataclass
 
 import numpy as np
@@ -38,6 +39,27 @@ def _as_1d_float(values: np.ndarray | list[float], label: str) -> np.ndarray:
     return array
 
 
+def _correlations(truth: np.ndarray, pred: np.ndarray) -> tuple[float, float]:
+    """Pearson and Spearman, or (nan, nan) when a vector is (near-)constant.
+
+    SciPy emits a warning rather than raising for constant input, and a
+    degenerate baseline legitimately produces constant predictions, so the
+    warnings are turned into NaN here instead of leaking to stderr.
+    """
+    if np.std(truth) == 0.0 or np.std(pred) == 0.0:
+        return float("nan"), float("nan")
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", stats.ConstantInputWarning)
+        warnings.simplefilter("error", stats.NearConstantInputWarning)
+        try:
+            return (
+                float(stats.pearsonr(truth, pred).statistic),
+                float(stats.spearmanr(truth, pred).statistic),
+            )
+        except (stats.ConstantInputWarning, stats.NearConstantInputWarning):
+            return float("nan"), float("nan")
+
+
 def regression_metrics(
     y_true: np.ndarray | list[float], y_pred: np.ndarray | list[float]
 ) -> RegressionMetrics:
@@ -61,12 +83,7 @@ def regression_metrics(
     rmse = float(np.sqrt(np.mean(residuals**2)))
     mae = float(np.mean(np.abs(residuals)))
 
-    if np.std(truth) == 0.0 or np.std(pred) == 0.0:
-        pearson = float("nan")
-        spearman = float("nan")
-    else:
-        pearson = float(stats.pearsonr(truth, pred).statistic)
-        spearman = float(stats.spearmanr(truth, pred).statistic)
+    pearson, spearman = _correlations(truth, pred)
 
     return RegressionMetrics(
         rmse=rmse, mae=mae, pearson=pearson, spearman=spearman, n=truth.shape[0]

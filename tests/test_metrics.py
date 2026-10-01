@@ -70,3 +70,14 @@ def test_per_target_mean_baseline_falls_back_to_global_mean():
 def test_per_target_mean_baseline_requires_columns():
     with pytest.raises(ValueError):
         per_target_mean_predictions(pd.DataFrame({"x": [1]}), pd.DataFrame({"x": [1]}))
+
+
+def test_near_constant_prediction_yields_nan_without_warning():
+    import warnings
+
+    y = np.array([5.0, 6.0, 7.0])
+    nearly_constant = np.array([6.0, 6.0 + 1e-18, 6.0])
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        m = regression_metrics(y, nearly_constant)
+    assert np.isnan(m.pearson) and np.isnan(m.spearman)
