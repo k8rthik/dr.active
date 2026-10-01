@@ -77,11 +77,12 @@ error: Unknown target 'TP53'. Known targets: EGFR, JAK2, BACE1, DRD2, HERG, ACHE
 | `dr-active data-summary` | per-target row counts and pChEMBL distribution |
 | `dr-active train-rf` | train the forest, save it, print top feature importances |
 | `dr-active train-gnn` | train the GNN, save it |
-| `dr-active evaluate --models rf,gnn` | both splits, both models, plus baseline and a per-target breakdown; writes `results/` |
+| `dr-active evaluate --models rf,gnn` | all three splits, both models, plus baseline and a per-target breakdown; writes `results/` (narrow it with `--splits scaffold`) |
 | `dr-active predict SMILES --target NAME` | one prediction (`--model-type gnn` for the GNN) |
 
 Every training flag (`--seed`, `--n-estimators`, `--epochs`, `--hidden-dim`,
-`--num-layers`, `--batch-size`, `--learning-rate`, `--device`, `--test-fraction`)
+`--num-layers`, `--batch-size`, `--learning-rate`, `--device`, `--test-fraction`,
+`--splits`)
 defaults to the value in `src/dractive/config.py`.
 
 ## Data provenance
@@ -139,12 +140,21 @@ runs end-to-end on real molecules without a download.
 
 ## Evaluation protocol
 
-- **Random split** — uniform over rows. Optimistic: close analogues of test
+Three splits, all 80/20, all scaffold-disjoint where the name says so:
+
+- **`random`** — uniform over rows. Optimistic: close analogues of test
   molecules are usually in training.
-- **Scaffold split** — rows are grouped by Bemis-Murcko scaffold and whole
-  groups are assigned to one side, so no scaffold appears in both. Large groups
-  stay in training and the test set is filled from the smaller ones, which is
-  the harder and more honest number for "will this work on a new chemotype".
+- **`scaffold`** — rows grouped by Bemis-Murcko scaffold, whole groups assigned
+  to one side, largest groups kept in training. **On this dataset that makes the
+  test set entirely singleton scaffolds**: of 22,723 scaffolds, 15,257 occur
+  once, which is more than the 11,035-row test quota, so the quota is filled
+  from singletons alone. A genuinely hard test of one-off chemotypes, but not a
+  representative sample of the data, so it is reported as the pessimistic bound
+  rather than *the* answer.
+- **`scaffold_shuffled`** — the same grouping, but whole groups are taken in a
+  seeded random order, so the test set is scaffold-disjoint *and*
+  frequency-weighted (it contains well-populated chemotypes too). This is the
+  fairer "unseen scaffold" estimate.
 - **Baseline** — per-target mean of the *training* labels only. Reported on
   every row of the results table. A model that cannot beat it has learned
   nothing about chemistry, only about which target is which.
@@ -274,7 +284,7 @@ src/dractive/
   prepare.py     raw activities -> clean modelling table
   dataset.py     prepared-CSV loading and validation
   features.py    descriptors + Morgan bits + target one-hot
-  splits.py      random and scaffold splits
+  splits.py      random, scaffold and frequency-weighted scaffold splits
   metrics.py     RMSE/MAE/Pearson/Spearman + per-target-mean baseline
   model_api.py   the AffinityModel protocol both models satisfy
   rf_model.py    random forest: train, predict, persist
