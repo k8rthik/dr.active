@@ -38,6 +38,22 @@ def random_split(
     return df.iloc[train_positions].copy(), df.iloc[test_positions].copy()
 
 
+SPLIT_NAMES: tuple[str, ...] = ("random", "scaffold")
+
+
+def split_dataset(
+    df: pd.DataFrame, split_name: str, *, test_fraction: float, seed: int
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Dispatch to a split by name; raises for an unknown name."""
+    if split_name == "random":
+        return random_split(df, test_fraction=test_fraction, seed=seed)
+    if split_name == "scaffold":
+        return scaffold_split(df, test_fraction=test_fraction, seed=seed)
+    raise ValueError(
+        f"unknown split {split_name!r}; expected one of {SPLIT_NAMES}"
+    )
+
+
 def scaffold_group_sizes(df: pd.DataFrame) -> dict[str, int]:
     groups = scaffold_groups(df)
     return {scaffold: len(rows) for scaffold, rows in groups.items()}
