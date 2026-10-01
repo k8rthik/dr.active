@@ -9,3 +9,6 @@ data/processed/
 models/
 *.egg-info/
 .DS_Store
+
+# evaluation run artefacts: summaries are committed, the per-row dump is not
+results/predictions.csv
