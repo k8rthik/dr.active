@@ -215,10 +215,12 @@ RMSE, but it is also the target whose labels have the smallest spread
 relative improvement is smallest for HERG and DRD2. BACE1 is the one target
 where the GNN edges out the forest (0.849 vs 0.856).
 
-Runtimes on an M3 Pro (18 GB, CPU): the whole `evaluate --models rf,gnn` run —
-two splits × (featurize + forest + GNN) — took **43 min**. Training the forest
-alone on all 55k rows takes about **9 min** (most of it RDKit featurization);
-one GNN training run is about **15 min** for up to 40 epochs.
+Runtimes on an M3 Pro (18 GB, CPU): the `evaluate --models rf,gnn` run over the
+random and scaffold splits — 2 × (featurize + forest + 30-40 GNN epochs) — took
+**43 min**. Training the forest alone on all 55,176 rows takes **9 min**, most
+of it RDKit featurization rather than tree fitting. A GNN epoch on 44k molecules
+is roughly 25-30 s on an otherwise idle machine, so one GNN training run is
+10-20 min depending on when early stopping fires. Nothing here needs a GPU.
 
 <!-- RESULTS:END -->
 
