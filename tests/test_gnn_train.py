@@ -150,3 +150,21 @@ def test_training_does_not_mutate_input_frame(frame):
     before = frame.copy()
     train_gnn_model(frame, TINY)
     pd.testing.assert_frame_equal(frame, before)
+
+
+def test_checkpoint_contains_only_plain_types(frame, tmp_path):
+    """The checkpoint must load under torch's safe (weights_only) unpickler."""
+    path = train_gnn_model(frame, TINY).save(tmp_path / "gnn.pt")
+    payload = torch.load(path, weights_only=True, map_location="cpu")
+    assert isinstance(payload["config"], dict)
+    assert payload["config"]["hidden_dim"] == TINY.hidden_dim
+    assert isinstance(payload["trained_targets"], (list, tuple))
+
+
+def test_load_rejects_checkpoint_with_unknown_config_keys(frame, tmp_path):
+    path = train_gnn_model(frame, TINY).save(tmp_path / "gnn.pt")
+    payload = torch.load(path, weights_only=True, map_location="cpu")
+    payload["config"]["mystery_option"] = 1
+    torch.save(payload, path)
+    with pytest.raises(ModelLoadError):
+        load_gnn_model(path, device="cpu")

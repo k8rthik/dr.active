@@ -27,7 +27,7 @@ Requires [uv](https://docs.astral.sh/uv/) and Python 3.11 or 3.12.
 git clone https://github.com/k8rthik/dr.active.git
 cd dr.active
 uv sync
-uv run pytest            # 176 tests, no network, no downloads (93% statement coverage)
+uv run pytest            # 179 tests, no network, no downloads (94% statement coverage)
 ```
 
 ## Quick start
@@ -215,6 +215,10 @@ one GNN training run is about **15 min** for up to 40 epochs.
 - **Replicate disagreement is dropped, not averaged.** Pairs whose measurements
   span more than 2 log units are discarded rather than smoothed into a mean no
   experiment supports.
+- **GNN checkpoints hold only plain types** (the config is stored as a dict, not
+  a pickled dataclass) so they load under `torch.load(weights_only=True)`.
+  The forest is persisted with joblib, which is pickle-based, so only load
+  `rf.joblib` files you produced yourself.
 - **The saved forest is big.** 300 trees grown to purity on 55k rows is a
   293 MB joblib file. That is the cost of `min_samples_leaf=1`; raise it (or
   lower `--n-estimators`) if the artefact size matters more than the last

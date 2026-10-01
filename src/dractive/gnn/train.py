@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Iterator, Sequence
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
 import numpy as np
@@ -19,7 +19,7 @@ from ..targets import UnknownTargetError, resolve_target_name
 from .graph import GraphBatch, MolGraph, collate_graphs, mol_to_graph
 from .model import AffinityGNN, resolve_device
 
-MODEL_FORMAT_VERSION = 1
+MODEL_FORMAT_VERSION = 2
 MIN_VAL_GRAPHS = 8
 
 
@@ -110,16 +110,18 @@ class GNNAffinityModel:
 
     def save(self, path: Path = GNN_MODEL_FILE) -> Path:
         path.parent.mkdir(parents=True, exist_ok=True)
+        # Only plain types go in, so the checkpoint loads under torch's safe
+        # (weights_only=True) unpickler rather than executing arbitrary pickles.
         torch.save(
             {
                 "format_version": MODEL_FORMAT_VERSION,
                 "state_dict": {
                     k: v.cpu() for k, v in self.network.state_dict().items()
                 },
-                "config": self.config,
-                "trained_targets": self.trained_targets,
+                "config": asdict(self.config),
+                "trained_targets": list(self.trained_targets),
                 "n_training_rows": self.n_training_rows,
-                "history": list(self.history),
+                "history": [dict(record) for record in self.history],
             },
             path,
         )
@@ -265,7 +267,7 @@ def load_gnn_model(
     if not path.exists():
         raise ModelLoadError(f"no model at {path}. Run `dr-active train-gnn` first.")
     try:
-        payload = torch.load(path, weights_only=False, map_location="cpu")
+        payload = torch.load(path, weights_only=True, map_location="cpu")
     except Exception as error:
         raise ModelLoadError(f"could not read model {path}: {error}") from error
     if not isinstance(payload, dict) or "state_dict" not in payload:
@@ -276,7 +278,12 @@ def load_gnn_model(
             f"({payload.get('format_version')!r}); retrain the model"
         )
 
-    config: GNNConfig = payload["config"]
+    try:
+        config = GNNConfig(**payload["config"])
+    except TypeError as error:
+        raise ModelLoadError(
+            f"{path} has a GNN configuration this version cannot read: {error}"
+        ) from error
     torch_device = resolve_device(device or config.device)
     network = AffinityGNN(config)
     try:
