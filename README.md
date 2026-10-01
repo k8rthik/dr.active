@@ -27,7 +27,7 @@ Requires [uv](https://docs.astral.sh/uv/) and Python 3.11 or 3.12.
 git clone https://github.com/k8rthik/dr.active.git
 cd dr.active
 uv sync
-uv run pytest            # 179 tests, no network, no downloads (94% statement coverage)
+uv run pytest            # 181 tests, no network, no downloads (94% statement coverage)
 ```
 
 ## Quick start
@@ -119,9 +119,23 @@ Cleaning (`src/dractive/prepare.py`), applied in this order:
    any pair whose replicate measurements span more than 2.0 log units, since for
    those the "true" value is not knowable from this data.
 
-`data/` is gitignored. `tests/fixtures/affinity_sample.csv` is a small
-stratified sample of the prepared table, committed so the test suite runs
-end-to-end on real molecules without a download.
+Measured effect of that cleaning on the download of 2026-10-01: **85,472 raw
+activity records in, 55,176 (molecule, target) pairs out (64.6% kept)**, over
+54,187 distinct molecules. Per-target counts and label spread:
+
+| target | pairs | mean pChEMBL | std | min | max |
+| --- | --- | --- | --- | --- | --- |
+| JAK2 | 11,580 | 7.49 | 1.29 | 3.84 | 10.97 |
+| EGFR | 10,154 | 6.95 | 1.31 | 4.00 | 11.00 |
+| BACE1 | 9,841 | 6.82 | 1.21 | 3.00 | 10.96 |
+| HERG | 9,395 | 5.49 | 0.90 | 4.00 | 9.85 |
+| DRD2 | 8,269 | 6.75 | 1.01 | 4.00 | 10.83 |
+| ACHE | 5,937 | 6.14 | 1.29 | 4.00 | 10.96 |
+
+ChEMBL is a moving target, so a later download will not reproduce these counts
+exactly. `data/` is gitignored. `tests/fixtures/affinity_sample.csv` is a
+600-row stratified sample of the prepared table, committed so the test suite
+runs end-to-end on real molecules without a download.
 
 ## Evaluation protocol
 
