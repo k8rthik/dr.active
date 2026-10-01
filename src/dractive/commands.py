@@ -28,6 +28,7 @@ from .evaluate import (
 )
 from .gnn.train import load_gnn_model, train_gnn_model
 from .metrics import per_target_mean_predictions
+from .model_api import AffinityModel
 from .prepare import dataset_summary
 from .reporting import (
     PredictionRecord,
@@ -119,7 +120,7 @@ def cmd_train_gnn(args: Namespace) -> None:
     print(f"saved GNN ({model.network.num_parameters()} parameters) to {path}")
 
 
-def _load_model(model_type: str, path: Path, device: str):
+def _load_model(model_type: str, path: Path, device: str) -> AffinityModel:
     if model_type not in MODEL_TYPES:
         raise ValueError(f"--model-type must be one of {MODEL_TYPES}, got {model_type!r}")
     if model_type == "rf":
@@ -172,7 +173,7 @@ def cmd_predict(args: Namespace) -> None:
 
 def _predictions_for(
     model_type: str, train: pd.DataFrame, test: pd.DataFrame, args: Namespace
-) -> tuple[str, pd.Series]:
+) -> tuple[str, np.ndarray]:
     if model_type == "rf":
         model = train_rf_model(train, _rf_config(args))
         return RF_NAME, model.predict_frame(test)

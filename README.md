@@ -12,8 +12,9 @@ Two models, same data and same splits:
 
 Both are compared against a deliberately trivial baseline — *predict each
 target's mean training pChEMBL* — on a random split **and** a Bemis-Murcko
-scaffold split. The measured numbers are in [Results](#results); they are the
-numbers the code produced, including where a model fails to beat the baseline.
+scaffold split. The measured numbers are in [Results](#results); they are what
+the code produced, including the part where the experimental GNN loses to the
+much simpler random forest.
 
 This is a prototype, not a tool for making decisions about real chemistry. See
 [Limitations](#limitations).
@@ -32,7 +33,7 @@ uv run pytest            # 176 tests, no network, no downloads (93% statement co
 ## Quick start
 
 ```bash
-# 1. download raw activities from ChEMBL (~90k records, ~35 MB, a few minutes)
+# 1. download raw activities from ChEMBL (85,472 records, 30 MB, ~18 min)
 uv run python scripts/download_chembl.py
 
 # 2. clean them into data/processed/affinity.csv
@@ -257,6 +258,7 @@ src/dractive/
   features.py    descriptors + Morgan bits + target one-hot
   splits.py      random and scaffold splits
   metrics.py     RMSE/MAE/Pearson/Spearman + per-target-mean baseline
+  model_api.py   the AffinityModel protocol both models satisfy
   rf_model.py    random forest: train, predict, persist
   gnn/graph.py   molecule -> graph tensors, manual batching
   gnn/model.py   message-passing network
