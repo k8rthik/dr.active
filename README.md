@@ -27,7 +27,7 @@ Requires [uv](https://docs.astral.sh/uv/) and Python 3.11 or 3.12.
 git clone https://github.com/k8rthik/dr.active.git
 cd dr.active
 uv sync
-uv run pytest            # 181 tests, no network, no downloads (94% statement coverage)
+uv run pytest            # 191 tests, no network, no downloads (94% statement coverage)
 ```
 
 ## Quick start
@@ -39,7 +39,7 @@ uv run python scripts/download_chembl.py
 # 2. clean them into data/processed/affinity.csv
 uv run python scripts/prepare_dataset.py
 
-# 3. train and evaluate on both splits
+# 3. train and evaluate on all three splits (~75 min for rf+gnn)
 uv run dr-active evaluate --models rf,gnn
 
 # 4. train a model you want to keep, then predict with it
