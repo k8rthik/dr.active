@@ -26,7 +26,7 @@ Requires [uv](https://docs.astral.sh/uv/) and Python 3.11 or 3.12.
 git clone https://github.com/k8rthik/dr.active.git
 cd dr.active
 uv sync
-uv run pytest            # 176 tests, no network, no downloads
+uv run pytest            # 176 tests, no network, no downloads (93% statement coverage)
 ```
 
 ## Quick start
@@ -214,6 +214,10 @@ one GNN training run is about **15 min** for up to 40 epochs.
 - **Replicate disagreement is dropped, not averaged.** Pairs whose measurements
   span more than 2 log units are discarded rather than smoothed into a mean no
   experiment supports.
+- **The saved forest is big.** 300 trees grown to purity on 55k rows is a
+  293 MB joblib file. That is the cost of `min_samples_leaf=1`; raise it (or
+  lower `--n-estimators`) if the artefact size matters more than the last
+  hundredth of RMSE.
 - **Target enters as an identifier, not a sequence.** One-hot for the forest, a
   learned embedding for the GNN. Nothing about the protein's structure or
   sequence is used, so the models cannot generalise to an unseen target — and
