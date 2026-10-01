@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Callable, Mapping
 
 import numpy as np
 import pandas as pd
@@ -142,7 +142,7 @@ def save_results(
     """Write results.json and results.md into ``directory``."""
     directory.mkdir(parents=True, exist_ok=True)
     payload: dict[str, object] = {
-        "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "generated_at": datetime.now(UTC).isoformat(timespec="seconds"),
         **(dict(extra) if extra else {}),
         "results": [row.as_dict() for row in rows],
     }

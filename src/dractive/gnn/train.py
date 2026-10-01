@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable, Iterator, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Callable, Iterator, Sequence
 
 import numpy as np
 import pandas as pd
@@ -88,7 +88,8 @@ class GNNAffinityModel:
         predictions = np.full(len(df), np.nan, dtype=float)
         usable: list[MolGraph] = []
         positions: list[int] = []
-        for position, (smiles, target) in enumerate(zip(df["smiles"], df["target"])):
+        rows = zip(df["smiles"], df["target"], strict=True)
+        for position, (smiles, target) in enumerate(rows):
             try:
                 usable.append(mol_to_graph(smiles, target, 0.0))
                 positions.append(position)

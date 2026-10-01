@@ -7,7 +7,7 @@ HTTP call is injected (``getter``) so the pagination logic is testable offline.
 from __future__ import annotations
 
 import time
-from typing import Callable, Iterable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 
 import requests
 

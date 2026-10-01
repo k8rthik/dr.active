@@ -1,3 +1,5 @@
+from dataclasses import FrozenInstanceError
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -98,5 +100,5 @@ def test_save_predictions_writes_csv(records, tmp_path):
 
 
 def test_prediction_record_is_frozen(records):
-    with pytest.raises(Exception):
+    with pytest.raises(FrozenInstanceError):
         records[0].model = "x"  # type: ignore[misc]

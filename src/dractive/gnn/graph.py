@@ -7,8 +7,8 @@ macOS arm64), so batching is done here: graphs are concatenated and a
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Sequence
 
 import torch
 from rdkit import Chem
@@ -110,7 +110,7 @@ class GraphBatch:
     def num_graphs(self) -> int:
         return int(self.target_index.shape[0])
 
-    def to(self, device: torch.device) -> "GraphBatch":
+    def to(self, device: torch.device) -> GraphBatch:
         """Return a copy of this batch on ``device`` (no in-place mutation)."""
         return GraphBatch(
             atom_features=self.atom_features.to(device),

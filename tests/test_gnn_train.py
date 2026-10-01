@@ -5,7 +5,6 @@ import torch
 
 from dractive.config import GNNConfig
 from dractive.gnn.train import (
-    GNNAffinityModel,
     build_graphs,
     iterate_batches,
     load_gnn_model,

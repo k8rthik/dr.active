@@ -13,7 +13,7 @@ import pandas as pd
 import pytest
 
 from dractive.cli import EXIT_OK, main
-from dractive.config import GNNConfig, RFConfig, SplitConfig
+from dractive.config import GNNConfig, RFConfig
 from dractive.evaluate import BASELINE_NAME, RF_NAME, evaluate_predictions
 from dractive.gnn.train import train_gnn_model
 from dractive.rf_model import train_rf_model

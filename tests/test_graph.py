@@ -1,3 +1,5 @@
+from dataclasses import FrozenInstanceError
+
 import pytest
 import torch
 
@@ -79,6 +81,6 @@ def test_collate_rejects_empty_batch():
 
 def test_mol_graph_is_immutable():
     graph = mol_to_graph("CCO", "EGFR", 6.0)
-    with pytest.raises(Exception):
+    with pytest.raises(FrozenInstanceError):
         graph.label = 1.0  # type: ignore[misc]
     assert isinstance(graph, MolGraph)

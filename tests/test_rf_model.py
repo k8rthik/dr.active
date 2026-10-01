@@ -5,8 +5,8 @@ import pytest
 from dractive.chem import InvalidSmilesError
 from dractive.config import RFConfig
 from dractive.rf_model import (
-    RandomForestAffinityModel,
     ModelLoadError,
+    RandomForestAffinityModel,
     load_rf_model,
     train_rf_model,
 )

@@ -26,7 +26,7 @@ Requires [uv](https://docs.astral.sh/uv/) and Python 3.11 or 3.12.
 git clone https://github.com/k8rthik/dr.active.git
 cd dr.active
 uv sync
-uv run pytest            # ~160 tests, no network, no downloads
+uv run pytest            # 176 tests, no network, no downloads
 ```
 
 ## Quick start
@@ -49,11 +49,12 @@ uv run dr-active predict "CC(=O)Oc1ccccc1C(=O)O" --target EGFR
 `predict` output:
 
 ```
+$ uv run dr-active predict "CC(=O)Oc1ccccc1C(=O)O" --target EGFR
 target:            EGFR
 model:             rf
-predicted pChEMBL: 5.42
-  approx.          3,802 nM
-  tree spread      +/- 0.51 (disagreement, not a CI)
+predicted pChEMBL: 5.02
+  approx.          9,471 nM
+  tree spread      +/- 0.77 (disagreement, not a CI)
 ```
 
 `--json` emits the same thing machine-readably. Invalid input is rejected at the
@@ -75,7 +76,7 @@ error: Unknown target 'TP53'. Known targets: EGFR, JAK2, BACE1, DRD2, HERG, ACHE
 | `dr-active data-summary` | per-target row counts and pChEMBL distribution |
 | `dr-active train-rf` | train the forest, save it, print top feature importances |
 | `dr-active train-gnn` | train the GNN, save it |
-| `dr-active evaluate --models rf,gnn` | both splits, both models, plus baseline; writes `results/` |
+| `dr-active evaluate --models rf,gnn` | both splits, both models, plus baseline and a per-target breakdown; writes `results/` |
 | `dr-active predict SMILES --target NAME` | one prediction (`--model-type gnn` for the GNN) |
 
 Every training flag (`--seed`, `--n-estimators`, `--epochs`, `--hidden-dim`,
@@ -139,8 +140,60 @@ end-to-end on real molecules without a download.
 <!-- RESULTS:START -->
 ## Results
 
-Run `uv run dr-active evaluate --models rf,gnn` to regenerate; numbers land in
-`results/results.json`.
+Measured on 2026-10-01 from one `uv run dr-active evaluate --models rf,gnn` run:
+**55,176 (molecule, target) pairs**, 80/20 split, seed 42, so 44,141 training and
+11,035 test rows for each split. Units are pChEMBL log units. Regenerate with
+the same command; raw output is in `results/`.
+
+| split | model | RMSE | MAE | Pearson r | Spearman rho |
+| --- | --- | --- | --- | --- | --- |
+| random | **random forest** | **0.648** | 0.474 | **0.880** | 0.876 |
+| random | GNN | 0.856 | 0.653 | 0.798 | 0.793 |
+| random | per-target mean (baseline) | 1.180 | 0.941 | 0.490 | 0.467 |
+| scaffold | **random forest** | **0.780** | 0.580 | **0.817** | 0.808 |
+| scaffold | GNN | 0.860 | 0.654 | 0.777 | 0.770 |
+| scaffold | per-target mean (baseline) | 1.180 | 0.947 | 0.474 | 0.455 |
+
+Reading these honestly:
+
+- The random forest beats the baseline on both splits: RMSE 0.65 vs 1.18 random,
+  0.78 vs 1.18 scaffold. On the scaffold split that is a 34% error reduction, and
+  **0.78 log units is still a factor of ~6 in concentration** — useful for
+  ranking, not for predicting a number.
+- The baseline's non-zero correlation (r ≈ 0.48) comes entirely from the targets
+  having different mean affinities. It is a reminder of how much of a naive
+  "accuracy" figure is just target identity, which is why it is on every row.
+- **The GNN does not beat the random forest.** It is worse on both splits
+  (RMSE 0.86 vs 0.65 random, 0.86 vs 0.78 scaffold). It is also the more robust
+  of the two to the split change — it loses almost nothing going from random to
+  scaffold (0.856 → 0.860) while the forest loses 0.13 — but it starts from a
+  worse number, so that is a consolation, not a win. No architecture or
+  hyperparameter search was run; 40 epochs of one configuration is all this is.
+- The forest's single most important feature is the HERG target indicator
+  (importance 0.121, next highest 0.042): most of the easy signal is "which
+  target is this", exactly what the baseline captures.
+
+Per-target, scaffold split (the harder number), RMSE in log units:
+
+| target | n test | baseline | random forest | GNN |
+| --- | --- | --- | --- | --- |
+| ACHE | 1,262 | 1.311 | **0.902** | 1.030 |
+| BACE1 | 1,846 | 1.297 | **0.856** | 0.849 |
+| DRD2 | 1,816 | 1.049 | **0.728** | 0.837 |
+| EGFR | 1,764 | 1.269 | **0.867** | 1.002 |
+| HERG | 2,257 | 0.862 | **0.646** | 0.693 |
+| JAK2 | 2,090 | 1.309 | **0.724** | 0.809 |
+
+Both models beat the baseline on every target. HERG is the easiest in absolute
+RMSE, but it is also the target whose labels have the smallest spread
+(std 0.90 vs ~1.3 for the kinases), so the baseline is already strong there; the
+relative improvement is smallest for HERG and DRD2. BACE1 is the one target
+where the GNN edges out the forest (0.849 vs 0.856).
+
+Runtimes on an M3 Pro (18 GB, CPU): the whole `evaluate --models rf,gnn` run —
+two splits × (featurize + forest + GNN) — took **43 min**. Training the forest
+alone on all 55k rows takes about **9 min** (most of it RDKit featurization);
+one GNN training run is about **15 min** for up to 40 epochs.
 
 <!-- RESULTS:END -->
 
@@ -169,9 +222,11 @@ Run `uv run dr-active evaluate --models rf,gnn` to regenerate; numbers land in
 ## Limitations
 
 - **Mixed assay types.** IC50, Ki and Kd are pooled. They are not the same
-  physical quantity; IC50 in particular depends on assay conditions. Public
-  reproducibility studies put the noise floor for heterogeneous ChEMBL IC50 data
-  at roughly 0.5-0.8 log units, which is the realistic floor for RMSE here.
+  physical quantity; IC50 in particular depends on assay conditions. Published
+  analyses of repeated public measurements (Kramer et al., *J. Med. Chem.* 2012,
+  for Ki; Kalliokoski et al., *PLoS ONE* 2013, for mixed IC50) put the
+  experimental spread at roughly half a log unit or more, so an RMSE below about
+  0.5-0.7 on data like this would say more about leakage than about modelling.
 - **Six targets only.** There is no protein representation, so the model cannot
   say anything about a target it was not trained on.
 - **Scaffold split is the number that matters.** The random-split numbers are
@@ -203,6 +258,7 @@ src/dractive/
   gnn/model.py   message-passing network
   gnn/train.py   GNN training loop, persistence, inference
   evaluate.py    split x model x baseline harness, results writers
+  reporting.py   per-target metrics and prediction dumps
   commands.py    CLI command implementations
   cli.py         argument parsing and exit-code mapping
 scripts/

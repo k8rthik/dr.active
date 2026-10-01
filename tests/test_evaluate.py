@@ -1,4 +1,5 @@
 import json
+from dataclasses import FrozenInstanceError
 
 import numpy as np
 import pandas as pd
@@ -101,5 +102,5 @@ def test_evaluation_row_is_frozen(frame):
         frame.iloc[:60], frame.iloc[60:], {"m": np.full(20, 6.0)}, split_name="random"
     )
     assert isinstance(rows[0], EvaluationRow)
-    with pytest.raises(Exception):
+    with pytest.raises(FrozenInstanceError):
         rows[0].model = "x"  # type: ignore[misc]

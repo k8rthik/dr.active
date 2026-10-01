@@ -40,7 +40,9 @@ def read_raw() -> pd.DataFrame:
                 try:
                     records.append(json.loads(line))
                 except json.JSONDecodeError as error:
-                    raise SystemExit(f"{path}:{line_number}: malformed JSON ({error})")
+                    raise SystemExit(
+                        f"{path}:{line_number}: malformed JSON ({error})"
+                    ) from error
     print(f"read {len(records)} raw records from {len(paths)} file(s)")
     return pd.DataFrame.from_records(records)
 
