@@ -17,7 +17,7 @@ from dractive.config import GNNConfig, RFConfig
 from dractive.evaluate import BASELINE_NAME, RF_NAME, evaluate_predictions
 from dractive.gnn.train import train_gnn_model
 from dractive.rf_model import train_rf_model
-from dractive.splits import random_split, scaffold_split
+from dractive.splits import random_split, scaffold_split, shuffled_scaffold_split
 
 FIXTURE = Path(__file__).parent / "fixtures" / "affinity_sample.csv"
 
@@ -38,7 +38,9 @@ def test_fixture_looks_like_real_chembl_data(fixture_frame):
     assert fixture_frame["pchembl"].between(3.0, 12.0).all()
 
 
-@pytest.mark.parametrize("split_fn", [random_split, scaffold_split])
+@pytest.mark.parametrize(
+    "split_fn", [random_split, scaffold_split, shuffled_scaffold_split]
+)
 def test_rf_beats_baseline_on_fixture(fixture_frame, split_fn):
     train, test = split_fn(fixture_frame, test_fraction=0.2, seed=0)
     model = train_rf_model(train, RFConfig(n_estimators=50, n_jobs=1))
