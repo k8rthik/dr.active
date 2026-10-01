@@ -181,6 +181,19 @@ def _predictions_for(
     return GNN_NAME, model.predict_frame(test)
 
 
+def _requested_splits(args: Namespace) -> tuple[str, ...]:
+    requested = tuple(name.strip() for name in args.splits.split(",") if name.strip())
+    unknown = [name for name in requested if name not in SPLIT_NAMES]
+    if unknown:
+        raise ValueError(
+            f"--splits contains unknown entries: {unknown}; "
+            f"expected any of {', '.join(SPLIT_NAMES)}"
+        )
+    if not requested:
+        raise ValueError("--splits must name at least one of " + ", ".join(SPLIT_NAMES))
+    return requested
+
+
 def cmd_evaluate(args: Namespace) -> None:
     """Train each requested model on each split and report metrics."""
     splits = _split_config(args)
@@ -191,10 +204,11 @@ def cmd_evaluate(args: Namespace) -> None:
     if not requested:
         raise ValueError("--models must name at least one of " + ", ".join(MODEL_TYPES))
 
+    chosen_splits = _requested_splits(args)
     df = load_dataset(Path(args.dataset))
     rows = []
     records: list[PredictionRecord] = []
-    for split_name in SPLIT_NAMES:
+    for split_name in chosen_splits:
         train, test = split_dataset(
             df, split_name, test_fraction=splits.test_fraction, seed=splits.seed
         )
@@ -236,6 +250,7 @@ def cmd_evaluate(args: Namespace) -> None:
             "test_fraction": splits.test_fraction,
             "seed": splits.seed,
             "models": requested,
+            "splits": list(chosen_splits),
         },
     )
     results_dir = Path(args.results_dir)

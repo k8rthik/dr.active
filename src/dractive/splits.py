@@ -38,7 +38,7 @@ def random_split(
     return df.iloc[train_positions].copy(), df.iloc[test_positions].copy()
 
 
-SPLIT_NAMES: tuple[str, ...] = ("random", "scaffold")
+SPLIT_NAMES: tuple[str, ...] = ("random", "scaffold", "scaffold_shuffled")
 
 
 def split_dataset(
@@ -49,6 +49,8 @@ def split_dataset(
         return random_split(df, test_fraction=test_fraction, seed=seed)
     if split_name == "scaffold":
         return scaffold_split(df, test_fraction=test_fraction, seed=seed)
+    if split_name == "scaffold_shuffled":
+        return shuffled_scaffold_split(df, test_fraction=test_fraction, seed=seed)
     raise ValueError(
         f"unknown split {split_name!r}; expected one of {SPLIT_NAMES}"
     )
@@ -101,6 +103,49 @@ def scaffold_split(
     if not train_positions:  # pathological: one scaffold holds everything
         raise ValueError(
             "scaffold split left no training rows; dataset is too small"
+        )
+    return (
+        df.iloc[sorted(train_positions)].copy(),
+        df.iloc[sorted(test_positions)].copy(),
+    )
+
+
+def shuffled_scaffold_split(
+    df: pd.DataFrame, *, test_fraction: float, seed: int
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Scaffold-disjoint split with whole groups assigned in random order.
+
+    ``scaffold_split`` sorts groups largest-first, which on a real ChEMBL table
+    fills the test quota entirely from singleton scaffolds: the held-out set
+    ends up made of one-off chemotypes only. This variant shuffles the groups
+    and takes them in that order instead, so the test set is scaffold-disjoint
+    *and* frequency-weighted, including some well-populated chemotypes. It is
+    the fairer "new scaffold" estimate; ``scaffold_split`` is the harsher one.
+    """
+    _validate(df, test_fraction)
+    groups = scaffold_groups(df)
+
+    rng = np.random.default_rng(seed)
+    scaffolds = list(groups)
+    rng.shuffle(scaffolds)
+
+    quota = max(1, int(round(len(df) * test_fraction)))
+    test_positions: list[int] = []
+    for scaffold in scaffolds:
+        if len(test_positions) >= quota:
+            break
+        members = groups[scaffold]
+        # Allow a single overshoot only while the test set is still empty, so a
+        # dataset dominated by one scaffold still yields a usable split.
+        if len(test_positions) + len(members) > quota and test_positions:
+            continue
+        test_positions.extend(members)
+
+    test_set = set(test_positions)
+    train_positions = [i for i in range(len(df)) if i not in test_set]
+    if not train_positions:
+        raise ValueError(
+            "shuffled scaffold split left no training rows; dataset is too small"
         )
     return (
         df.iloc[sorted(train_positions)].copy(),

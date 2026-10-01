@@ -19,6 +19,7 @@ from .config import (
 )
 from .dataset import DatasetError
 from .rf_model import ModelLoadError
+from .splits import SPLIT_NAMES
 from .targets import UnknownTargetError
 
 EXIT_OK = 0
@@ -128,6 +129,10 @@ def build_parser() -> argparse.ArgumentParser:
     )
     _add_dataset_argument(evaluate)
     _add_shared_training_arguments(evaluate)
+    evaluate.add_argument(
+        "--splits", default=",".join(SPLIT_NAMES),
+        help="comma-separated splits to evaluate (" + ", ".join(SPLIT_NAMES) + ")",
+    )
     evaluate.add_argument(
         "--models", default="rf",
         help="comma-separated model types to evaluate (rf, gnn)",

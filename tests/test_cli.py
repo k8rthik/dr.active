@@ -184,3 +184,28 @@ def test_dataset_summary_command(dataset_path, capsys):
 def test_unknown_subcommand_errors():
     with pytest.raises(SystemExit):
         main(["frobnicate"])
+
+
+def test_evaluate_accepts_a_single_split(dataset_path, tmp_path, capsys):
+    code = main([
+        "evaluate", "--dataset", str(dataset_path), "--models", "rf",
+        "--splits", "random", "--n-estimators", "10",
+        "--results-dir", str(tmp_path / "r"),
+    ])
+    assert code == EXIT_OK
+    out = capsys.readouterr().out
+    assert "random" in out
+    assert "scaffold" not in out
+
+
+def test_evaluate_rejects_unknown_split(dataset_path, capsys):
+    code = main([
+        "evaluate", "--dataset", str(dataset_path), "--splits", "nonsense",
+    ])
+    assert code == EXIT_INVALID_INPUT
+    assert "nonsense" in capsys.readouterr().err
+
+
+def test_evaluate_rejects_empty_splits(dataset_path):
+    code = main(["evaluate", "--dataset", str(dataset_path), "--splits", " ,"])
+    assert code == EXIT_INVALID_INPUT

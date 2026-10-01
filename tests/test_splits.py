@@ -1,7 +1,13 @@
 import pandas as pd
 import pytest
 
-from dractive.splits import random_split, scaffold_split
+from dractive.splits import (
+    SPLIT_NAMES,
+    random_split,
+    scaffold_split,
+    shuffled_scaffold_split,
+    split_dataset,
+)
 
 
 def _frame(smiles: list[str]) -> pd.DataFrame:
@@ -96,3 +102,56 @@ def test_splits_do_not_mutate_input():
     random_split(df, test_fraction=0.2, seed=0)
     scaffold_split(df, test_fraction=0.2, seed=0)
     pd.testing.assert_frame_equal(df, before)
+
+
+def test_shuffled_scaffold_split_keeps_scaffolds_disjoint():
+    df = _frame(SMILES)
+    train, test = shuffled_scaffold_split(df, test_fraction=0.3, seed=0)
+    from dractive.chem import murcko_scaffold
+
+    assert {murcko_scaffold(s) for s in train["smiles"]}.isdisjoint(
+        {murcko_scaffold(s) for s in test["smiles"]}
+    )
+    assert len(train) + len(test) == len(df)
+
+
+def test_shuffled_scaffold_split_is_deterministic():
+    df = _frame(SMILES)
+    a, _ = shuffled_scaffold_split(df, test_fraction=0.3, seed=5)
+    b, _ = shuffled_scaffold_split(df, test_fraction=0.3, seed=5)
+    pd.testing.assert_frame_equal(a, b)
+
+
+def test_shuffled_scaffold_split_varies_with_seed():
+    df = _frame(SMILES * 4)
+    _, a = shuffled_scaffold_split(df, test_fraction=0.3, seed=1)
+    _, b = shuffled_scaffold_split(df, test_fraction=0.3, seed=9)
+    assert list(a.index) != list(b.index)
+
+
+def test_shuffled_scaffold_split_can_place_a_multi_row_group_in_test():
+    """Unlike the size-ordered split, groups larger than one may land in test."""
+    df = _frame(SMILES)
+    sizes = []
+    for seed in range(12):
+        _, test = shuffled_scaffold_split(df, test_fraction=0.4, seed=seed)
+        sizes.append(test.groupby(test["smiles"].map(_scaffold_of)).size().max())
+    assert max(sizes) > 1
+
+
+def _scaffold_of(smiles: str) -> str:
+    from dractive.chem import murcko_scaffold
+
+    return murcko_scaffold(smiles)
+
+
+def test_split_dataset_dispatches_every_named_split():
+    df = _frame(SMILES)
+    for name in SPLIT_NAMES:
+        train, test = split_dataset(df, name, test_fraction=0.3, seed=0)
+        assert len(train) + len(test) == len(df)
+
+
+def test_split_dataset_rejects_unknown_name():
+    with pytest.raises(ValueError):
+        split_dataset(_frame(SMILES), "nope", test_fraction=0.3, seed=0)
