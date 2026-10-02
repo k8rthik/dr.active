@@ -178,21 +178,33 @@ the same command; raw output is in `results/`.
 | scaffold | **random forest** | **0.780** | 0.580 | **0.817** | 0.808 |
 | scaffold | GNN | 0.860 | 0.654 | 0.777 | 0.770 |
 | scaffold | per-target mean (baseline) | 1.180 | 0.947 | 0.474 | 0.455 |
+| scaffold_shuffled | **random forest** | **0.761** | 0.565 | **0.827** | 0.825 |
+| scaffold_shuffled | GNN | 0.974 | 0.759 | 0.707 | 0.704 |
+| scaffold_shuffled | per-target mean (baseline) | 1.186 | 0.949 | 0.473 | 0.447 |
 
 Reading these honestly:
 
-- The random forest beats the baseline on both splits: RMSE 0.65 vs 1.18 random,
-  0.78 vs 1.18 scaffold. On the scaffold split that is a 34% error reduction, and
-  **0.78 log units is still a factor of ~6 in concentration** — useful for
-  ranking, not for predicting a number.
+- The random forest beats the baseline on all three splits: RMSE 0.65 vs 1.18
+  random, 0.78 vs 1.18 scaffold, 0.76 vs 1.19 scaffold_shuffled. On the
+  scaffold splits that is a 34-36% error reduction, and **0.76-0.78 log units is
+  still a factor of ~6 in concentration** — useful for ranking, not for
+  predicting a number.
+- **The two scaffold splits agree**, which is the most reassuring number here.
+  The all-singleton `scaffold` split (0.780) and the frequency-weighted
+  `scaffold_shuffled` split (0.761) land 0.02 log units apart for the forest, so
+  the pessimistic bound was not an artifact of testing only on one-off
+  chemotypes — generalising to an unseen scaffold really does cost ~0.12 log
+  units over a random split, however the unseen scaffolds are chosen.
 - The baseline's non-zero correlation (r ≈ 0.48) comes entirely from the targets
   having different mean affinities. It is a reminder of how much of a naive
   "accuracy" figure is just target identity, which is why it is on every row.
-- **The GNN does not beat the random forest.** It is worse on both splits
-  (RMSE 0.86 vs 0.65 random, 0.86 vs 0.78 scaffold). It is also the more robust
-  of the two to the split change — it loses almost nothing going from random to
-  scaffold (0.856 → 0.860) while the forest loses 0.13 — but it starts from a
-  worse number, so that is a consolation, not a win. No architecture or
+- **The GNN does not beat the random forest.** It is worse on all three splits
+  (RMSE 0.86 vs 0.65 random, 0.86 vs 0.78 scaffold, 0.97 vs 0.76
+  scaffold_shuffled). It looked like the more split-robust of the two on the
+  first two splits — 0.856 → 0.860 while the forest lost 0.13 — but
+  `scaffold_shuffled` refutes that: the GNN degrades to 0.974, its worst number
+  anywhere, while the forest holds at 0.761. The apparent robustness was a
+  property of the all-singleton split, not of the model. No architecture or
   hyperparameter search was run; 40 epochs of one configuration is all this is.
 - The forest's single most important feature is the HERG target indicator
   (importance 0.121, next highest 0.042): most of the easy signal is "which
@@ -215,9 +227,8 @@ RMSE, but it is also the target whose labels have the smallest spread
 relative improvement is smallest for HERG and DRD2. BACE1 is the one target
 where the GNN edges out the forest (0.849 vs 0.856).
 
-Runtimes on an M3 Pro (18 GB, CPU): the `evaluate --models rf,gnn` run over the
-random and scaffold splits — 2 × (featurize + forest + 30-40 GNN epochs) — took
-**43 min**. Training the forest alone on all 55,176 rows takes **9 min**, most
+Runtimes on an M3 Pro (18 GB, CPU): the full `evaluate --models rf,gnn` run over
+all three splits — 3 × (featurize + forest + 30-40 GNN epochs) — took **66 min**. Training the forest alone on all 55,176 rows takes **9 min**, most
 of it RDKit featurization rather than tree fitting. A GNN epoch on 44k molecules
 is roughly 25-30 s on an otherwise idle machine, so one GNN training run is
 10-20 min depending on when early stopping fires. Nothing here needs a GPU.

@@ -36,3 +36,21 @@
 | scaffold | random forest | EGFR | 1764 | 0.867 | 0.654 | 0.733 | 0.737 |
 | scaffold | random forest | HERG | 2257 | 0.646 | 0.479 | 0.669 | 0.608 |
 | scaffold | random forest | JAK2 | 2090 | 0.724 | 0.513 | 0.841 | 0.841 |
+| scaffold_shuffled | gnn | ACHE | 1204 | 1.177 | 0.899 | 0.537 | 0.52 |
+| scaffold_shuffled | gnn | BACE1 | 2005 | 0.995 | 0.818 | 0.681 | 0.681 |
+| scaffold_shuffled | gnn | DRD2 | 1529 | 0.878 | 0.677 | 0.531 | 0.532 |
+| scaffold_shuffled | gnn | EGFR | 2024 | 0.976 | 0.769 | 0.61 | 0.608 |
+| scaffold_shuffled | gnn | HERG | 1815 | 0.84 | 0.61 | 0.386 | 0.354 |
+| scaffold_shuffled | gnn | JAK2 | 2458 | 0.996 | 0.796 | 0.675 | 0.65 |
+| scaffold_shuffled | per-target mean | ACHE | 1204 | 1.382 | 1.132 | nan | nan |
+| scaffold_shuffled | per-target mean | BACE1 | 2005 | 1.261 | 1.051 | nan | nan |
+| scaffold_shuffled | per-target mean | DRD2 | 1529 | 0.98 | 0.779 | nan | nan |
+| scaffold_shuffled | per-target mean | EGFR | 2024 | 1.238 | 1.014 | nan | nan |
+| scaffold_shuffled | per-target mean | HERG | 1815 | 0.856 | 0.652 | nan | nan |
+| scaffold_shuffled | per-target mean | JAK2 | 2458 | 1.297 | 1.048 | nan | nan |
+| scaffold_shuffled | random forest | ACHE | 1204 | 0.96 | 0.704 | 0.732 | 0.741 |
+| scaffold_shuffled | random forest | BACE1 | 2005 | 0.794 | 0.619 | 0.788 | 0.79 |
+| scaffold_shuffled | random forest | DRD2 | 1529 | 0.673 | 0.502 | 0.737 | 0.733 |
+| scaffold_shuffled | random forest | EGFR | 2024 | 0.816 | 0.637 | 0.758 | 0.755 |
+| scaffold_shuffled | random forest | HERG | 1815 | 0.621 | 0.449 | 0.699 | 0.655 |
+| scaffold_shuffled | random forest | JAK2 | 2458 | 0.721 | 0.519 | 0.831 | 0.825 |

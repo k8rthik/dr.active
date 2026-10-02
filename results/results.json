@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-01T17:33:39+00:00",
+  "generated_at": "2026-10-02T01:46:45+00:00",
   "dataset": "/Users/keerthikmuruganandam/code/dr.active/data/processed/affinity.csv",
   "dataset_rows": 55176,
   "targets": [
@@ -15,6 +15,11 @@
   "models": [
     "rf",
     "gnn"
+  ],
+  "splits": [
+    "random",
+    "scaffold",
+    "scaffold_shuffled"
   ],
   "results": [
     {
@@ -81,6 +86,39 @@
       "mae": 0.947,
       "pearson": 0.474,
       "spearman": 0.455,
+      "n": 11035
+    },
+    {
+      "split": "scaffold_shuffled",
+      "model": "random forest",
+      "n_train": 44141,
+      "n_skipped": 0,
+      "rmse": 0.761,
+      "mae": 0.565,
+      "pearson": 0.827,
+      "spearman": 0.825,
+      "n": 11035
+    },
+    {
+      "split": "scaffold_shuffled",
+      "model": "gnn",
+      "n_train": 44141,
+      "n_skipped": 0,
+      "rmse": 0.974,
+      "mae": 0.759,
+      "pearson": 0.707,
+      "spearman": 0.704,
+      "n": 11035
+    },
+    {
+      "split": "scaffold_shuffled",
+      "model": "per-target mean",
+      "n_train": 44141,
+      "n_skipped": 0,
+      "rmse": 1.186,
+      "mae": 0.949,
+      "pearson": 0.473,
+      "spearman": 0.447,
       "n": 11035
     }
   ]
